@@ -22,6 +22,8 @@ export default function Home() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [messageSearch, setMessageSearch] = useState('');
+  const [reverseOrder, setReverseOrder] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -50,8 +52,16 @@ export default function Home() {
   });
 
   const selectedMessages = selectedConversation 
-    ? messages.filter(m => m.conversation === selectedConversation)
+    ? messages.filter(m => m.conversation === selectedConversation).filter(m => 
+        messageSearch === '' || 
+        m.content.toLowerCase().includes(messageSearch.toLowerCase()) ||
+        m.sender.toLowerCase().includes(messageSearch.toLowerCase())
+      )
     : [];
+
+  const displayMessages = reverseOrder 
+    ? [...selectedMessages].reverse()
+    : selectedMessages;
 
   if (loading) {
     return (
@@ -149,25 +159,66 @@ export default function Home() {
             >
               ← Back to Conversations
             </button>
-            <h1>{conversations[selectedConversation!]?.participants.join(' • ')}</h1>
-            <p>{selectedMessages.length} messages</p>
+            <h1>{conversations[selectedConversation!]?.participants.slice(0, 3).join(' • ')}{conversations[selectedConversation!]?.participants.length > 3 ? ` +${conversations[selectedConversation!]?.participants.length - 3}` : ''}</h1>
+            <p>{displayMessages.length} messages{messageSearch ? ' (filtered)' : ''}</p>
+          </div>
+
+          <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexDirection: 'column' }}>
+            <input
+              type="text"
+              placeholder="🔍 Search messages..."
+              value={messageSearch}
+              onChange={(e) => setMessageSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '24px',
+                border: 'none',
+                background: '#2d3748',
+                color: '#fff',
+                fontSize: '14px'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setReverseOrder(!reverseOrder)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '24px',
+                  border: 'none',
+                  background: reverseOrder ? 'linear-gradient(to right, #ec4899, #f43f5e)' : '#4a5568',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {reverseOrder ? '⬆️ Oldest First' : '⬇️ Newest First'}
+              </button>
+            </div>
           </div>
 
           <div className="messages">
-            {selectedMessages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`message-group ${msg.sender.includes('rayane') ? 'sent' : ''}`}
-              >
-                <div className="message-content">
-                  <div className="sender-name">{msg.sender}</div>
-                  <div className={`bubble ${msg.sender.includes('rayane') ? 'sent' : 'received'}`}>
-                    <div className="bubble-text">{msg.content || '[No content]'}</div>
-                    <div className="bubble-meta">{msg.timestamp}</div>
+            {displayMessages.length > 0 ? (
+              displayMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`message-group ${msg.sender.includes('rayane') ? 'sent' : ''}`}
+                >
+                  <div className="message-content">
+                    <div className="sender-name">{msg.sender}</div>
+                    <div className={`bubble ${msg.sender.includes('rayane') ? 'sent' : 'received'}`}>
+                      <div className="bubble-text">{msg.content || '[No content]'}</div>
+                      <div className="bubble-meta">{msg.timestamp}</div>
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a0aec0' }}>
+                No messages found matching "{messageSearch}"
               </div>
-            ))}
+            )}
           </div>
         </>
       )}
